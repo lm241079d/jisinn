@@ -11808,67 +11808,110 @@ const csvData = `
     }
 
     function getShindoCategory(shindo) {
-      if (!shindo) return "";
+  if (!shindo) return "";
 
-      if (shindo.includes("１") || shindo.includes("1")) {
-        return "shindo1";
-      }
+  // 文字列化しておく
+  shindo = String(shindo);
 
-      if (shindo.includes("２") || shindo.includes("2")) {
-        return "shindo2";
-      }
+  if (shindo.includes("１") || shindo.includes("1")) {
+    return "shindo1";
+  }
 
-      if (shindo.includes("３") || shindo.includes("3")) {
-        return "shindo3";
-      }
+  if (shindo.includes("２") || shindo.includes("2")) {
+    return "shindo2";
+  }
 
-      if (
-        shindo.includes("４") || shindo.includes("4") ||
-        shindo.includes("５") || shindo.includes("5") ||
-        shindo.includes("６") || shindo.includes("6") ||
-        shindo.includes("７") || shindo.includes("7")
-      ) {
-        return "shindo4_above";
-      }
+  if (shindo.includes("３") || shindo.includes("3")) {
+    return "shindo3";
+  }
 
-      return "";
-    }
+  if (shindo.includes("４") || shindo.includes("4")) {
+    return "shindo4";
+  }
+
+  if (
+    shindo.includes("５弱") || shindo.includes("5弱") ||
+    shindo.includes("５-") || shindo.includes("5-")
+  ) {
+    return "shindo5_lower";
+  }
+
+  if (
+    shindo.includes("５強") || shindo.includes("5強") ||
+    shindo.includes("５+") || shindo.includes("5+")
+  ) {
+    return "shindo5_upper";
+  }
+
+  if (
+    shindo.includes("６弱") || shindo.includes("6弱") ||
+    shindo.includes("６-") || shindo.includes("6-")
+  ) {
+    return "shindo6_lower";
+  }
+
+  if (
+    shindo.includes("６強") || shindo.includes("6強") ||
+    shindo.includes("６+") || shindo.includes("6+")
+  ) {
+    return "shindo6_upper";
+  }
+
+  if (shindo.includes("７") || shindo.includes("7")) {
+    return "shindo7";
+  }
+
+  return "";
+}
 
     function createPrefSummary(events) {
+
+    }
       const summary = {
         total: {},
         detail: {}
       };
 
-      prefectures.forEach(pref => {
-        summary.total[pref] = 0;
-        summary.detail[pref] = {
-          shindo1: 0,
-          shindo2: 0,
-          shindo3: 0,
-          shindo4_above: 0
-        };
-      });
+  function createPrefSummary(events) {
+  const summary = {
+    total: {},
+    detail: {}
+  };
 
-      events.forEach(event => {
-        const pref = event.pref;
-        const cat = event.shindoCat;
+  prefectures.forEach(pref => {
+    summary.total[pref] = 0;
+    summary.detail[pref] = {
+      shindo1: 0,
+      shindo2: 0,
+      shindo3: 0,
+      shindo4: 0,
+      shindo5_lower: 0,
+      shindo5_upper: 0,
+      shindo6_lower: 0,
+      shindo6_upper: 0,
+      shindo7: 0
+    };
+  });
 
-        if (summary.total[pref] === undefined) {
-          return;
-        }
+  events.forEach(event => {
+    const pref = event.pref;
+    const cat = event.shindoCat;
 
-        summary.total[pref]++;
-
-        if (summary.detail[pref][cat] !== undefined) {
-          summary.detail[pref][cat]++;
-        }
-      });
-
-      return summary;
+    if (summary.total[pref] === undefined) {
+      return;
     }
 
-    function drawRegionsMap(prefSummary, label1, label2) {
+    summary.total[pref]++;
+
+    if (summary.detail[pref][cat] !== undefined) {
+      summary.detail[pref][cat]++;
+    }
+  });
+
+  return summary;
+}
+
+ function drawRegionsMap(prefSummary, label1, label2) {
   let maxCount = 1;
   let totalCount = 0;
 
@@ -11887,12 +11930,6 @@ const csvData = `
       counts.push(count);
     }
   });
-
-  // =====================================================
-  // 自動いい感じスケール
-  // 極端に多い県に引っ張られないように、
-  // 色分けの上限を「上位10%付近の値」に自動設定する
-  // =====================================================
 
   let colorLimit = maxCount;
 
@@ -11928,37 +11965,47 @@ const csvData = `
     ]
   ];
 
-  prefectures.forEach(pref => {
-    const total = prefSummary.total[pref] || 0;
+prefectures.forEach(pref => {
+  const total = prefSummary.total[pref] || 0;
 
-    const detail = prefSummary.detail[pref] || {
-      shindo1: 0,
-      shindo2: 0,
-      shindo3: 0,
-      shindo4_above: 0
-    };
+  const detail = prefSummary.detail[pref] || {
+    shindo1: 0,
+    shindo2: 0,
+    shindo3: 0,
+    shindo4: 0,
+    shindo5_lower: 0,
+    shindo5_upper: 0,
+    shindo6_lower: 0,
+    shindo6_upper: 0,
+    shindo7: 0
+  };
 
-    // 色だけ自動上限で頭打ち
-    // 実際の件数はtooltipにそのまま出す
-    const colorValue = Math.min(total, colorLimit);
+  // 色だけ自動上限で頭打ち
+  // 実際の件数はtooltipにそのまま出す
+  const colorValue = Math.min(total, colorLimit);
 
-    const tooltipHtml =
-      "<div style='padding:10px 12px; font-size:13px; line-height:1.6; min-width:170px;'>" +
-        "<div style='font-weight:bold; font-size:15px; margin-bottom:6px;'>" + pref + "</div>" +
-        "<div>合計：<b>" + total + "</b>回</div>" +
-        "<hr style='border:none; border-top:1px solid #ddd; margin:6px 0;'>" +
-        "<div>震度1：" + detail.shindo1 + "回</div>" +
-        "<div>震度2：" + detail.shindo2 + "回</div>" +
-        "<div>震度3：" + detail.shindo3 + "回</div>" +
-        "<div>震度4以上：" + detail.shindo4_above + "回</div>" +
-      "</div>";
+  const tooltipHtml =
+    "<div style='padding:10px 12px; font-size:13px; line-height:1.6; min-width:170px;'>" +
+      "<div style='font-weight:bold; font-size:15px; margin-bottom:6px;'>" + pref + "</div>" +
+      "<div>合計：<b>" + total + "</b>回</div>" +
+      "<hr style='border:none; border-top:1px solid #ddd; margin:6px 0;'>" +
+      "<div>震度1：" + detail.shindo1 + "回</div>" +
+      "<div>震度2：" + detail.shindo2 + "回</div>" +
+      "<div>震度3：" + detail.shindo3 + "回</div>" +
+      "<div>震度4：" + detail.shindo4 + "回</div>" +
+      "<div>震度5弱：" + detail.shindo5_lower + "回</div>" +
+      "<div>震度5強：" + detail.shindo5_upper + "回</div>" +
+      "<div>震度6弱：" + detail.shindo6_lower + "回</div>" +
+      "<div>震度6強：" + detail.shindo6_upper + "回</div>" +
+      "<div>震度7：" + detail.shindo7 + "回</div>" +
+    "</div>";
 
-    chartData.push([
-      prefToIso[pref],
-      colorValue,
-      tooltipHtml
-    ]);
-  });
+  chartData.push([
+    prefToIso[pref],
+    colorValue,
+    tooltipHtml
+  ]);
+});
 
   const data = google.visualization.arrayToDataTable(chartData);
 
@@ -12133,15 +12180,20 @@ function toggleEventList(show) {
       document.getElementById("event-table").innerHTML = html;
     }
 
-    function getShindoText(shindo) {
-      if (shindo === "all") return "すべて";
-      if (shindo === "shindo1") return "震度1";
-      if (shindo === "shindo2") return "震度2";
-      if (shindo === "shindo3") return "震度3";
-      if (shindo === "shindo4_above") return "震度4以上";
+   function getShindoText(shindo) {
+  if (shindo === "all") return "すべて";
+  if (shindo === "shindo1") return "震度1";
+  if (shindo === "shindo2") return "震度2";
+  if (shindo === "shindo3") return "震度3";
+  if (shindo === "shindo4") return "震度4";
+  if (shindo === "shindo5_lower") return "震度5弱";
+  if (shindo === "shindo5_upper") return "震度5強";
+  if (shindo === "shindo6_lower") return "震度6弱";
+  if (shindo === "shindo6_upper") return "震度6強";
+  if (shindo === "shindo7") return "震度7";
 
-      return "すべて";
-    }
+  return "すべて";
+}
 
     window.addEventListener("resize", function () {
       if (!allEvents || allEvents.length === 0) return;
