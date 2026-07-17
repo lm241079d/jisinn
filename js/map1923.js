@@ -1281,182 +1281,216 @@ const csvData = `
       "沖縄県": "JP-47"
     };
 
-    let allEvents = [];
+   
+let allEvents = [];
 
-    google.charts.load("current", {
-      packages: ["geochart"]
+google.charts.load("current", {
+  packages: ["geochart"]
+});
+
+google.charts.setOnLoadCallback(initApp);
+
+function initApp() {
+  allEvents = [];
+
+  parseCSVString(csvData);
+
+  console.log("読み込み件数:", allEvents.length);
+  console.log("読み込みデータ:", allEvents);
+
+  const summary = createPrefSummary(allEvents);
+
+  drawRegionsMap(summary, "通年", "すべて");
+  toggleEventList(false);
+  renderEventList([], "地震一覧");
+}
+
+function normalizeDate(dateStr) {
+  if (!dateStr) return "";
+
+  dateStr = String(dateStr)
+    .normalize("NFKC")
+    .trim()
+    .replace(/-/g, "/");
+
+  const parts = dateStr.split("/");
+
+  if (parts.length < 3) return dateStr;
+
+  const year = parts[0];
+  const month = parts[1].padStart(2, "0");
+  const day = parts[2].padStart(2, "0");
+
+  return year + "/" + month + "/" + day;
+}
+
+function parseCSVString(text) {
+  if (!text || String(text).trim() === "") {
+    console.warn("csvData が空です");
+    return;
+  }
+
+  const lines = String(text).split(/\r?\n/);
+
+  lines.forEach((line, index) => {
+    line = line.trim();
+
+    if (!line) return;
+
+    if (
+      line.includes("ここに") ||
+      line.includes("例：") ||
+      line.includes("地震リスト") ||
+      line.includes("コピペ") ||
+      line.includes("地震の発生日")
+    ) {
+      return;
+    }
+
+    let cols = [];
+
+    if (line.includes("\t")) {
+      cols = line.split(/\t+/);
+    } else {
+      cols = line.split(",");
+    }
+
+    cols = cols.map(col => String(col).trim().replace(/^"|"$/g, ""));
+
+    if (cols.length < 8) {
+      console.warn("列数不足でスキップ:", index + 1, line);
+      return;
+    }
+
+    const date = normalizeDate(cols[0]);
+    const time = cols[1];
+    const area = cols[2];
+    const lat = cols[3];
+    const lon = cols[4];
+    const depth = cols[5];
+    const magnitude = cols[6];
+    const shindo = cols[7];
+
+    if (!date || !date.includes("/")) {
+      console.warn("日付不正でスキップ:", index + 1, cols[0]);
+      return;
+    }
+
+    const pref = getPrefectureName(area, lat, lon);
+    const shindoCat = getShindoCategory(shindo);
+
+    if (!shindoCat) {
+      console.warn("震度判定できずスキップ:", index + 1, shindo, line);
+      return;
+    }
+
+    allEvents.push({
+      date: date,
+      time: time,
+      area: area,
+      lat: lat,
+      lon: lon,
+      depth: depth,
+      magnitude: magnitude,
+      shindo: shindo,
+      pref: pref,
+      shindoCat: shindoCat
     });
+  });
+}
 
-    google.charts.setOnLoadCallback(initApp);
+function getPrefectureName(area, lat, lon) {
+  area = String(area || "").normalize("NFKC");
+  lat = String(lat || "").normalize("NFKC");
+  lon = String(lon || "").normalize("NFKC");
 
-    function initApp() {
-      parseCSVString(csvData);
-
-      console.log("読み込み件数:", allEvents.length);
-
-      const summary = createPrefSummary(allEvents);
-      drawRegionsMap(summary, "通年", "すべて");
-      toggleEventList(false);
-      renderEventList([], "地震一覧");
+  for (const pref of prefectures) {
+    if (area.includes(pref)) {
+      return pref;
     }
+  }
 
-    function normalizeDate(dateStr) {
-      if (!dateStr) return "";
+  if (area.includes("日向灘")) return "宮崎県";
+  if (area.includes("紀伊水道")) return "和歌山県";
+  if (area.includes("相模湾")) return "神奈川県";
+  if (area.includes("有明海")) return "長崎県";
+  if (area.includes("橘湾")) return "長崎県";
+  if (area.includes("浦河沖")) return "北海道";
+  if (area.includes("苫小牧沖")) return "北海道";
+  if (area.includes("釧路沖")) return "北海道";
+  if (area.includes("根室半島南東沖")) return "北海道";
+  if (area.includes("十勝沖")) return "北海道";
+  if (area.includes("三陸沖")) return "岩手県";
+  if (area.includes("岩手県沖")) return "岩手県";
+  if (area.includes("宮城県沖")) return "宮城県";
+  if (area.includes("福島県沖")) return "福島県";
+  if (area.includes("茨城県沖")) return "茨城県";
+  if (area.includes("千葉県東方沖")) return "千葉県";
+  if (area.includes("千葉県南東沖")) return "千葉県";
+  if (area.includes("関東東方沖")) return "千葉県";
+  if (area.includes("房総")) return "千葉県";
+  if (area.includes("隠岐島")) return "島根県";
+  if (area.includes("瀬戸内海")) return "香川県";
+  if (area.includes("土佐湾")) return "高知県";
+  if (area.includes("種子島")) return "鹿児島県";
+  if (area.includes("奄美大島")) return "鹿児島県";
+  if (area.includes("与那国島")) return "沖縄県";
+  if (area.includes("石垣島")) return "沖縄県";
+  if (area.includes("宮古島")) return "沖縄県";
+  if (area.includes("沖縄本島")) return "沖縄県";
+  if (area.includes("千島列島")) return "北海道";
+  if (area.includes("東海道南方沖")) return "静岡県";
+  if (area.includes("小笠原")) return "東京都";
+  if (area.includes("父島近海")) return "東京都";
+  if (area.includes("伊豆")) return "静岡県";
+  if (area.includes("五島列島")) return "長崎県";
+  if (area.includes("九州地方南東沖")) return "宮崎県";
+  if (area.includes("三重県南東沖")) return "三重県";
+  if (area.includes("ロシア")) return "北海道";
 
-      dateStr = String(dateStr).trim();
-      dateStr = dateStr.replace(/-/g, "/");
+  if (lat.includes("35°06") && lon.includes("138°51")) return "静岡県";
+  if (lat.includes("36°09") && lon.includes("139°23")) return "栃木県";
+  if (lat.includes("34°14") && lon.includes("135°10")) return "和歌山県";
+  if (lat.includes("36°23") && lon.includes("140°28")) return "茨城県";
+  if (lat.includes("43°20") && lon.includes("145°35")) return "北海道";
+  if (lat.includes("42°58") && lon.includes("144°24")) return "北海道";
+  if (lat.includes("39°39") && lon.includes("141°58")) return "岩手県";
+  if (lat.includes("35°44") && lon.includes("140°52")) return "千葉県";
+  if (lat.includes("32°44") && lon.includes("129°52")) return "長崎県";
+  if (lat.includes("24°20") && lon.includes("124°10")) return "沖縄県";
+  if (lat.includes("28°23") && lon.includes("129°30")) return "鹿児島県";
+  if (lat.includes("36°13") && lon.includes("140°06")) return "茨城県";
+  if (lat.includes("37°45") && lon.includes("140°28")) return "福島県";
+  if (lat.includes("35°41") && lon.includes("139°46")) return "東京都";
+  if (lat.includes("35°26") && lon.includes("139°39")) return "神奈川県";
+  if (lat.includes("34°14") && lon.includes("132°33")) return "広島県";
+  if (lat.includes("33°13") && lon.includes("132°33")) return "愛媛県";
+  if (lat.includes("34°44") && lon.includes("136°31")) return "三重県";
+  if (lat.includes("35°24") && lon.includes("136°46")) return "岐阜県";
+  if (lat.includes("36°39") && lon.includes("139°27")) return "栃木県";
+  if (lat.includes("35°01") && lon.includes("135°44")) return "京都府";
+  if (lat.includes("34°55") && lon.includes("139°50")) return "千葉県";
+  if (lat.includes("33°57") && lon.includes("133°15")) return "愛媛県";
+  if (lat.includes("41°49") && lon.includes("140°45")) return "北海道";
+  if (lat.includes("36°40") && lon.includes("138°12")) return "長野県";
+  if (lat.includes("34°04") && lon.includes("134°35")) return "徳島県";
+  if (lat.includes("33°27") && lon.includes("135°46")) return "和歌山県";
+  if (lat.includes("34°12") && lon.includes("129°18")) return "長崎県";
+  if (lat.includes("43°03") && lon.includes("141°20")) return "北海道";
+  if (lat.includes("36°57") && lon.includes("140°54")) return "福島県";
+  if (lat.includes("38°25") && lon.includes("141°18")) return "宮城県";
+  if (lat.includes("39°43") && lon.includes("140°06")) return "秋田県";
+  if (lat.includes("34°41") && lon.includes("135°31")) return "大阪府";
+  if (lat.includes("35°31") && lon.includes("137°50")) return "長野県";
+  if (lat.includes("27°05") && lon.includes("142°12")) return "東京都";
 
-      const parts = dateStr.split("/");
+  console.warn("都道府県を判定できません:", area, lat, lon);
 
-      if (parts.length < 3) return dateStr;
-
-      const year = parts[0];
-      const month = parts[1].padStart(2, "0");
-      const day = parts[2].padStart(2, "0");
-
-      return year + "/" + month + "/" + day;
-    }
-
-    function parseCSVString(text) {
-      if (!text || text.trim() === "") {
-        console.warn("csvData が空です");
-        return;
-      }
-
-      const lines = text.split(/\r?\n/);
-
-      lines.forEach(line => {
-        line = line.trim();
-
-        if (!line) return;
-
-        if (
-          line.includes("ここに") ||
-          line.includes("例：") ||
-          line.includes("地震リスト") ||
-          line.includes("コピペ") ||
-          line.includes("地震の発生日")
-        ) {
-          return;
-        }
-
-        let cols = line.split(/\t+/);
-
-        if (cols.length < 8) {
-          cols = line.split(",");
-        }
-
-        if (cols.length < 8) {
-          return;
-        }
-
-        const date = normalizeDate(cols[0]);
-        const time = cols[1];
-        const area = cols[2];
-        const lat = cols[3];
-        const lon = cols[4];
-        const depth = cols[5];
-        const magnitude = cols[6];
-        const shindo = cols[7];
-
-        if (!date || !date.includes("/")) {
-          return;
-        }
-
-        const pref = getPrefectureName(area, lat, lon);
-        const shindoCat = getShindoCategory(shindo);
-
-        if (!pref || !shindoCat) {
-          return;
-        }
-
-        allEvents.push({
-          date: date,
-          time: time,
-          area: area,
-          lat: lat,
-          lon: lon,
-          depth: depth,
-          magnitude: magnitude,
-          shindo: shindo,
-          pref: pref,
-          shindoCat: shindoCat
-        });
-      });
-    }
-
-    function getPrefectureName(area, lat, lon) {
-      for (const pref of prefectures) {
-        if (area.includes(pref)) {
-          return pref;
-        }
-      }
-
-      if (area.includes("日向灘")) return "宮崎県";
-      if (area.includes("紀伊水道")) return "和歌山県";
-      if (area.includes("相模湾")) return "神奈川県";
-      if (area.includes("有明海")) return "長崎県";
-      if (area.includes("橘湾")) return "長崎県";
-      if (area.includes("浦河沖")) return "北海道";
-      if (area.includes("苫小牧沖")) return "北海道";
-      if (area.includes("釧路沖")) return "北海道";
-      if (area.includes("三陸沖")) return "岩手県";
-      if (area.includes("隠岐島")) return "島根県";
-      if (area.includes("瀬戸内海")) return "香川県";
-      if (area.includes("種子島")) return "鹿児島県";
-      if (area.includes("与那国島")) return "沖縄県";
-      if (area.includes("千島列島")) return "北海道";
-      if (area.includes("関東東方沖")) return "千葉県";
-      if (area.includes("東海道南方沖")) return "静岡県";
-      if (area.includes("小笠原")) return "東京都";
-      if (area.includes("伊豆")) return "静岡県";
-      if (area.includes("五島列島")) return "長崎県";
-      if (area.includes("九州地方南東沖")) return "宮崎県";
-      if (area.includes("房総")) return "千葉県";
-      if (area.includes("三重県南東沖")) return "三重県";
-      if (area.includes("ロシア")) return "北海道";
-
-      if (lat.includes("34°14") && lon.includes("135°10")) return "和歌山県";
-      if (lat.includes("36°23") && lon.includes("140°28")) return "茨城県";
-      if (lat.includes("43°20") && lon.includes("145°35")) return "北海道";
-      if (lat.includes("42°58") && lon.includes("144°24")) return "北海道";
-      if (lat.includes("39°39") && lon.includes("141°58")) return "岩手県";
-      if (lat.includes("35°44") && lon.includes("140°52")) return "千葉県";
-      if (lat.includes("32°44") && lon.includes("129°52")) return "長崎県";
-      if (lat.includes("24°20") && lon.includes("124°10")) return "沖縄県";
-      if (lat.includes("28°23") && lon.includes("129°30")) return "鹿児島県";
-      if (lat.includes("36°13") && lon.includes("140°06")) return "茨城県";
-      if (lat.includes("37°45") && lon.includes("140°28")) return "福島県";
-      if (lat.includes("35°41") && lon.includes("139°46")) return "東京都";
-      if (lat.includes("35°26") && lon.includes("139°39")) return "神奈川県";
-      if (lat.includes("34°14") && lon.includes("132°33")) return "広島県";
-      if (lat.includes("33°13") && lon.includes("132°33")) return "愛媛県";
-      if (lat.includes("34°44") && lon.includes("136°31")) return "三重県";
-      if (lat.includes("35°24") && lon.includes("136°46")) return "岐阜県";
-      if (lat.includes("36°39") && lon.includes("139°27")) return "栃木県";
-      if (lat.includes("35°01") && lon.includes("135°44")) return "京都府";
-      if (lat.includes("34°55") && lon.includes("139°50")) return "千葉県";
-      if (lat.includes("33°57") && lon.includes("133°15")) return "愛媛県";
-      if (lat.includes("41°49") && lon.includes("140°45")) return "北海道";
-      if (lat.includes("36°40") && lon.includes("138°12")) return "長野県";
-      if (lat.includes("34°04") && lon.includes("134°35")) return "徳島県";
-      if (lat.includes("33°27") && lon.includes("135°46")) return "和歌山県";
-      if (lat.includes("34°12") && lon.includes("129°18")) return "長崎県";
-      if (lat.includes("43°03") && lon.includes("141°20")) return "北海道";
-      if (lat.includes("36°57") && lon.includes("140°54")) return "福島県";
-      if (lat.includes("38°25") && lon.includes("141°18")) return "宮城県";
-      if (lat.includes("39°43") && lon.includes("140°06")) return "秋田県";
-      if (lat.includes("34°41") && lon.includes("135°31")) return "大阪府";
-      if (lat.includes("35°31") && lon.includes("137°50")) return "長野県";
-      if (lat.includes("27°05") && lon.includes("142°12")) return "東京都";
-
-      return "";
-    }
-
-     function getShindoCategory(shindo) {
+  return "";
+}
+function getShindoCategory(shindo) {
   if (!shindo) return "";
 
-  // 文字列化しておく
   shindo = String(shindo);
 
   if (shindo.includes("１") || shindo.includes("1")) {
@@ -1489,6 +1523,10 @@ const csvData = `
     return "shindo5_upper";
   }
 
+  if (shindo.includes("５") || shindo.includes("5")) {
+    return "shindo5_lower";
+  }
+
   if (
     shindo.includes("６弱") || shindo.includes("6弱") ||
     shindo.includes("６-") || shindo.includes("6-")
@@ -1503,6 +1541,10 @@ const csvData = `
     return "shindo6_upper";
   }
 
+  if (shindo.includes("６") || shindo.includes("6")) {
+    return "shindo6_lower";
+  }
+
   if (shindo.includes("７") || shindo.includes("7")) {
     return "shindo7";
   }
@@ -1510,15 +1552,52 @@ const csvData = `
   return "";
 }
 
-    function createPrefSummary(events) {
+function normalizeShindoValue(value) {
+  if (!value || value === "all") return "all";
 
-    }
-      const summary = {
-        total: {},
-        detail: {}
-      };
+  if (value === "shindo1" || value === "1") return "shindo1";
+  if (value === "shindo2" || value === "2") return "shindo2";
+  if (value === "shindo3" || value === "3") return "shindo3";
+  if (value === "shindo4" || value === "4") return "shindo4";
 
-  function createPrefSummary(events) {
+  if (
+    value === "shindo5_lower" ||
+    value === "5弱" ||
+    value === "5-"
+  ) {
+    return "shindo5_lower";
+  }
+
+  if (
+    value === "shindo5_upper" ||
+    value === "5強" ||
+    value === "5+"
+  ) {
+    return "shindo5_upper";
+  }
+
+  if (
+    value === "shindo6_lower" ||
+    value === "6弱" ||
+    value === "6-"
+  ) {
+    return "shindo6_lower";
+  }
+
+  if (
+    value === "shindo6_upper" ||
+    value === "6強" ||
+    value === "6+"
+  ) {
+    return "shindo6_upper";
+  }
+
+  if (value === "shindo7" || value === "7") return "shindo7";
+
+  return value;
+}
+
+function createPrefSummary(events) {
   const summary = {
     total: {},
     detail: {}
@@ -1526,6 +1605,7 @@ const csvData = `
 
   prefectures.forEach(pref => {
     summary.total[pref] = 0;
+
     summary.detail[pref] = {
       shindo1: 0,
       shindo2: 0,
@@ -1543,21 +1623,19 @@ const csvData = `
     const pref = event.pref;
     const cat = event.shindoCat;
 
-    if (summary.total[pref] === undefined) {
-      return;
-    }
+    if (!pref) return;
+    if (summary.total[pref] === undefined) return;
+    if (!cat) return;
+    if (summary.detail[pref][cat] === undefined) return;
 
     summary.total[pref]++;
-
-    if (summary.detail[pref][cat] !== undefined) {
-      summary.detail[pref][cat]++;
-    }
+    summary.detail[pref][cat]++;
   });
 
   return summary;
 }
 
- function drawRegionsMap(prefSummary, label1, label2) {
+function drawRegionsMap(prefSummary, label1, label2) {
   let maxCount = 1;
   let totalCount = 0;
 
@@ -1582,22 +1660,18 @@ const csvData = `
   if (counts.length > 0) {
     counts.sort((a, b) => a - b);
 
-    // 90パーセンタイルを使う
     const index = Math.floor(counts.length * 0.9);
     colorLimit = counts[Math.min(index, counts.length - 1)];
 
-    // 小さすぎると色が濃くなりすぎるので最低値を設定
     if (colorLimit < 5) {
       colorLimit = maxCount;
     }
 
-    // 最大値と同じなら少しだけ下げて差を出す
     if (colorLimit === maxCount && counts.length >= 5) {
       const index80 = Math.floor(counts.length * 0.8);
       colorLimit = counts[Math.min(index80, counts.length - 1)];
     }
 
-    // それでも小さすぎる場合の保険
     if (!colorLimit || colorLimit < 1) {
       colorLimit = maxCount;
     }
@@ -1607,51 +1681,54 @@ const csvData = `
     [
       "Region",
       "色分け用の値",
-      { role: "tooltip", p: { html: true } }
+      {
+        role: "tooltip",
+        p: {
+          html: true
+        }
+      }
     ]
   ];
 
-prefectures.forEach(pref => {
-  const total = prefSummary.total[pref] || 0;
+  prefectures.forEach(pref => {
+    const total = prefSummary.total[pref] || 0;
 
-  const detail = prefSummary.detail[pref] || {
-    shindo1: 0,
-    shindo2: 0,
-    shindo3: 0,
-    shindo4: 0,
-    shindo5_lower: 0,
-    shindo5_upper: 0,
-    shindo6_lower: 0,
-    shindo6_upper: 0,
-    shindo7: 0
-  };
+    const detail = prefSummary.detail[pref] || {
+      shindo1: 0,
+      shindo2: 0,
+      shindo3: 0,
+      shindo4: 0,
+      shindo5_lower: 0,
+      shindo5_upper: 0,
+      shindo6_lower: 0,
+      shindo6_upper: 0,
+      shindo7: 0
+    };
 
-  // 色だけ自動上限で頭打ち
-  // 実際の件数はtooltipにそのまま出す
-  const colorValue = Math.min(total, colorLimit);
+    const colorValue = Math.min(total, colorLimit);
 
-  const tooltipHtml =
-    "<div style='padding:10px 12px; font-size:13px; line-height:1.6; min-width:170px;'>" +
-      "<div style='font-weight:bold; font-size:15px; margin-bottom:6px;'>" + pref + "</div>" +
-      "<div>合計：<b>" + total + "</b>回</div>" +
-      "<hr style='border:none; border-top:1px solid #ddd; margin:6px 0;'>" +
-      "<div>震度1：" + detail.shindo1 + "回</div>" +
-      "<div>震度2：" + detail.shindo2 + "回</div>" +
-      "<div>震度3：" + detail.shindo3 + "回</div>" +
-      "<div>震度4：" + detail.shindo4 + "回</div>" +
-      "<div>震度5弱：" + detail.shindo5_lower + "回</div>" +
-      "<div>震度5強：" + detail.shindo5_upper + "回</div>" +
-      "<div>震度6弱：" + detail.shindo6_lower + "回</div>" +
-      "<div>震度6強：" + detail.shindo6_upper + "回</div>" +
-      "<div>震度7：" + detail.shindo7 + "回</div>" +
-    "</div>";
+    const tooltipHtml =
+      "<div style='padding:10px 12px; font-size:13px; line-height:1.6; min-width:170px;'>" +
+        "<div style='font-weight:bold; font-size:15px; margin-bottom:6px;'>" + pref + "</div>" +
+        "<div>合計：<b>" + total + "</b>回</div>" +
+        "<hr style='border:none; border-top:1px solid #ddd; margin:6px 0;'>" +
+        "<div>震度1：" + detail.shindo1 + "回</div>" +
+        "<div>震度2：" + detail.shindo2 + "回</div>" +
+        "<div>震度3：" + detail.shindo3 + "回</div>" +
+        "<div>震度4：" + detail.shindo4 + "回</div>" +
+        "<div>震度5弱：" + detail.shindo5_lower + "回</div>" +
+        "<div>震度5強：" + detail.shindo5_upper + "回</div>" +
+        "<div>震度6弱：" + detail.shindo6_lower + "回</div>" +
+        "<div>震度6強：" + detail.shindo6_upper + "回</div>" +
+        "<div>震度7：" + detail.shindo7 + "回</div>" +
+      "</div>";
 
-  chartData.push([
-    prefToIso[pref],
-    colorValue,
-    tooltipHtml
-  ]);
-});
+    chartData.push([
+      prefToIso[pref],
+      colorValue,
+      tooltipHtml
+    ]);
+  });
 
   const data = google.visualization.arrayToDataTable(chartData);
 
@@ -1696,137 +1773,156 @@ prefectures.forEach(pref => {
 }
 
 function toggleEventList(show) {
-  const eventList = document.querySelector('.event-list');
+  const eventList = document.querySelector(".event-list");
+
   if (eventList) {
-    eventList.style.display = show ? 'block' : 'none';
+    eventList.style.display = show ? "block" : "none";
   }
 }
 
-    function handleCategoryChange() {
-      document.getElementById("date-input").value = "";
+function handleCategoryChange() {
+  document.getElementById("date-input").value = "";
 
-      const month = document.getElementById("month-select").value;
-      const shindo = document.getElementById("shindo-select").value;
+  const month = document.getElementById("month-select").value;
+  let shindo = document.getElementById("shindo-select").value;
 
-      const filtered = allEvents.filter(event => {
-        const eventMonth = event.date.split("/")[1].padStart(2, "0");
+  shindo = normalizeShindoValue(shindo);
 
-        const monthOk = month === "all" || eventMonth === month;
-        const shindoOk = shindo === "all" || event.shindoCat === shindo;
+  const filtered = allEvents.filter(event => {
+    const eventMonth = event.date.split("/")[1].padStart(2, "0");
 
-        return monthOk && shindoOk;
-      });
+    const monthOk =
+      month === "all" ||
+      eventMonth === String(month).padStart(2, "0");
 
-      const monthText = month === "all" ? "通年" : Number(month) + "月";
-      const shindoText = getShindoText(shindo);
+    const shindoOk =
+      shindo === "all" ||
+      event.shindoCat === shindo;
 
-      const summary = createPrefSummary(filtered);
+    return monthOk && shindoOk;
+  });
 
-      drawRegionsMap(summary, monthText, shindoText);
-      toggleEventList(true);
-      renderEventList(filtered, "地震一覧：" + monthText + " / " + shindoText);
-    }
+  const monthText = month === "all" ? "通年" : Number(month) + "月";
+  const shindoText = getShindoText(shindo);
 
-    function handleDateSearch() {
-      const inputDate = document.getElementById("date-input").value;
+  console.log("月:", month);
+  console.log("震度:", shindo);
+  console.log("絞り込み結果:", filtered.length, filtered);
 
-      if (!inputDate) {
-        alert("日付を選択してください。");
-        return;
-      }
+  const summary = createPrefSummary(filtered);
 
-      const formattedDate = normalizeDate(inputDate);
+  drawRegionsMap(summary, monthText, shindoText);
+  toggleEventList(true);
+  renderEventList(filtered, "地震一覧：" + monthText + " / " + shindoText);
+}
 
-      document.getElementById("month-select").value = "all";
+function handleDateSearch() {
+  const inputDate = document.getElementById("date-input").value;
 
-      const shindo = document.getElementById("shindo-select").value;
+  if (!inputDate) {
+    alert("日付を選択してください。");
+    return;
+  }
 
-      const filtered = allEvents.filter(event => {
-        const eventDate = normalizeDate(event.date);
+  const formattedDate = normalizeDate(inputDate);
 
-        const dateOk = eventDate === formattedDate;
-        const shindoOk = shindo === "all" || event.shindoCat === shindo;
+  document.getElementById("month-select").value = "all";
 
-        return dateOk && shindoOk;
-      });
+  let shindo = document.getElementById("shindo-select").value;
+  shindo = normalizeShindoValue(shindo);
 
-      console.log("検索日付:", formattedDate);
-      console.log("検索結果:", filtered.length, filtered);
+  const filtered = allEvents.filter(event => {
+    const eventDate = normalizeDate(event.date);
 
-      if (filtered.length === 0) {
-        alert(formattedDate + " の地震データが見つかりませんでした。");
-      }
+    const dateOk = eventDate === formattedDate;
 
-      const shindoText = getShindoText(shindo);
-      const summary = createPrefSummary(filtered);
+    const shindoOk =
+      shindo === "all" ||
+      event.shindoCat === shindo;
 
-      drawRegionsMap(summary, formattedDate, shindoText);
-      toggleEventList(true);
-      renderEventList(filtered, "地震一覧：" + formattedDate + " / " + shindoText);
-    }
+    return dateOk && shindoOk;
+  });
 
-    function resetView() {
-      document.getElementById("date-input").value = "";
-      document.getElementById("month-select").value = "all";
-      document.getElementById("shindo-select").value = "all";
+  console.log("検索日付:", formattedDate);
+  console.log("震度:", shindo);
+  console.log("検索結果:", filtered.length, filtered);
 
-      const summary = createPrefSummary(allEvents);
+  if (filtered.length === 0) {
+    alert(formattedDate + " の地震データが見つかりませんでした。");
+  }
 
-      drawRegionsMap(summary, "通年", "すべて");
-      toggleEventList(false);
-      renderEventList([], "地震一覧");
-    }
+  const shindoText = getShindoText(shindo);
+  const summary = createPrefSummary(filtered);
 
-    function renderEventList(events, title) {
-      document.getElementById("event-title").textContent = title;
+  drawRegionsMap(summary, formattedDate, shindoText);
+  toggleEventList(true);
+  renderEventList(filtered, "地震一覧：" + formattedDate + " / " + shindoText);
+}
 
-      if (events.length === 0) {
-        document.getElementById("event-table").innerHTML =
-          "<p>該当する地震データはありません。</p>";
-        return;
-      }
+function resetView() {
+  document.getElementById("date-input").value = "";
+  document.getElementById("month-select").value = "all";
+  document.getElementById("shindo-select").value = "all";
 
-      let html = "";
+  const summary = createPrefSummary(allEvents);
 
-      html += "<div class='table-wrap'>";
-      html += "<table>";
-      html += "<thead>";
-      html += "<tr>";
-      html += "<th>日付</th>";
-      html += "<th>時刻</th>";
-      html += "<th>地域</th>";
-      html += "<th>都道府県</th>";
-      html += "<th>緯度</th>";
-      html += "<th>経度</th>";
-      html += "<th>深さ</th>";
-      html += "<th>M</th>";
-      html += "<th>震度</th>";
-      html += "</tr>";
-      html += "</thead>";
-      html += "<tbody>";
+  drawRegionsMap(summary, "通年", "すべて");
+  toggleEventList(false);
+  renderEventList([], "地震一覧");
+}
 
-      events.forEach(event => {
-        html += "<tr>";
-        html += "<td>" + event.date + "</td>";
-        html += "<td>" + event.time + "</td>";
-        html += "<td>" + event.area + "</td>";
-        html += "<td>" + event.pref + "</td>";
-        html += "<td>" + event.lat + "</td>";
-        html += "<td>" + event.lon + "</td>";
-        html += "<td>" + event.depth + "</td>";
-        html += "<td>" + event.magnitude + "</td>";
-        html += "<td>" + event.shindo + "</td>";
-        html += "</tr>";
-      });
+function renderEventList(events, title) {
+  document.getElementById("event-title").textContent = title;
 
-      html += "</tbody>";
-      html += "</table>";
-      html += "</div>";
+  if (events.length === 0) {
+    document.getElementById("event-table").innerHTML =
+      "<p>該当する地震データはありません。</p>";
+    return;
+  }
 
-      document.getElementById("event-table").innerHTML = html;
-    }
+  let html = "";
 
-   function getShindoText(shindo) {
+  html += "<div class='table-wrap'>";
+  html += "<table>";
+  html += "<thead>";
+  html += "<tr>";
+  html += "<th>日付</th>";
+  html += "<th>時刻</th>";
+  html += "<th>地域</th>";
+  html += "<th>都道府県</th>";
+  html += "<th>緯度</th>";
+  html += "<th>経度</th>";
+  html += "<th>深さ</th>";
+  html += "<th>M</th>";
+  html += "<th>震度</th>";
+  html += "</tr>";
+  html += "</thead>";
+  html += "<tbody>";
+
+  events.forEach(event => {
+    html += "<tr>";
+    html += "<td>" + event.date + "</td>";
+    html += "<td>" + event.time + "</td>";
+    html += "<td>" + event.area + "</td>";
+    html += "<td>" + (event.pref || "不明") + "</td>";
+    html += "<td>" + event.lat + "</td>";
+    html += "<td>" + event.lon + "</td>";
+    html += "<td>" + event.depth + "</td>";
+    html += "<td>" + event.magnitude + "</td>";
+    html += "<td>" + event.shindo + "</td>";
+    html += "</tr>";
+  });
+
+  html += "</tbody>";
+  html += "</table>";
+  html += "</div>";
+
+  document.getElementById("event-table").innerHTML = html;
+}
+
+function getShindoText(shindo) {
+  shindo = normalizeShindoValue(shindo);
+
   if (shindo === "all") return "すべて";
   if (shindo === "shindo1") return "震度1";
   if (shindo === "shindo2") return "震度2";
@@ -1841,14 +1937,14 @@ function toggleEventList(show) {
   return "すべて";
 }
 
-    window.addEventListener("resize", function () {
-      if (!allEvents || allEvents.length === 0) return;
+window.addEventListener("resize", function () {
+  if (!allEvents || allEvents.length === 0) return;
 
-      const inputDate = document.getElementById("date-input").value;
+  const inputDate = document.getElementById("date-input").value;
 
-      if (inputDate) {
-        handleDateSearch();
-      } else {
-        handleCategoryChange();
-      }
-    });
+  if (inputDate) {
+    handleDateSearch();
+  } else {
+    handleCategoryChange();
+  }
+});

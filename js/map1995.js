@@ -2188,6 +2188,7 @@ const csvData = `
       if (area.includes("和歌山県北部")) return "和歌山県";
       if (area.includes("紀伊水道")) return "和歌山県";
       if (area.includes("瀬戸内海")) return "香川県";
+      if (area.includes("土佐湾")) return "高知県";
       if (area.includes("播磨灘")) return "兵庫県";
       if (area.includes("大阪府北部")) return "大阪府";
       if (area.includes("奈良県")) return "奈良県";
@@ -2231,10 +2232,9 @@ const csvData = `
       return "";
     }
 
-     function getShindoCategory(shindo) {
+    function getShindoCategory(shindo) {
   if (!shindo) return "";
 
-  // 文字列化しておく
   shindo = String(shindo);
 
   if (shindo.includes("１") || shindo.includes("1")) {
@@ -2267,6 +2267,10 @@ const csvData = `
     return "shindo5_upper";
   }
 
+  if (shindo.includes("５") || shindo.includes("5")) {
+    return "shindo5_lower";
+  }
+
   if (
     shindo.includes("６弱") || shindo.includes("6弱") ||
     shindo.includes("６-") || shindo.includes("6-")
@@ -2279,6 +2283,10 @@ const csvData = `
     shindo.includes("６+") || shindo.includes("6+")
   ) {
     return "shindo6_upper";
+  }
+
+  if (shindo.includes("６") || shindo.includes("6")) {
+    return "shindo6_lower";
   }
 
   if (shindo.includes("７") || shindo.includes("7")) {
