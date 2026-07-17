@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>1923年 都道府県別 地震発生回数</title>
+
+  <link rel="stylesheet" href="../css/map1923.css">
+</head>
+
+<body>
+
+  <a href="../index.html" class="back-button">← ポータルに戻る</a>
+
+  <div class="container">
+    <h2>1923年（大正12年）関東大震災 都道府県別 地震発生回数</h2>
+
+    <div class="description">
+      通年・月別・日付別・震度別に地震発生回数を表示します。地図にマウスを乗せると震度別回数も確認できます。
+    </div>
+
+    <div class="control-area">
+      <div class="control-group">
+        <label for="date-input">日付：</label>
+        <input type="date" id="date-input" min="1923-01-01" max="1923-12-31">
+        <button onclick="handleDateSearch()">日付で表示</button>
+      </div>
+
+      <div class="control-group">
+        <label for="month-select" class="year-label">月：</label>
+        <select id="month-select" onchange="handleCategoryChange()">
+          <option value="all">通年</option>
+          <option value="01">1月</option>
+          <option value="02">2月</option>
+          <option value="03">3月</option>
+          <option value="04">4月</option>
+          <option value="05">5月</option>
+          <option value="06">6月</option>
+          <option value="07">7月</option>
+          <option value="08">8月</option>
+          <option value="09">9月</option>
+          <option value="10">10月</option>
+          <option value="11">11月</option>
+          <option value="12">12月</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="shindo-select">震度：</label>
+        <select id="shindo-select" onchange="handleCategoryChange()">
+          <option value="all">すべて</option>
+          <option value="shindo1">震度1</option>
+          <option value="shindo2">震度2</option>
+          <option value="shindo3">震度3</option>
+          <option value="shindo4_above">震度4以上</option>
+        </select>
+      </div>
+
+      <button onclick="resetView()">通年表示に戻す</button>
+    </div>
+
+    <div id="regions_div"></div>
+    <!-- 追加：大規模地震災害の比較 -->
+    <div class="disaster-comparison">
+      <h3>災害の概要</h3>
+      <div class="disaster-grid">
+        <div class="disaster-card">
+          <h4>1923年 関東大震災</h4>
+          <div class="info-blocks">
+            <div class="info-block">
+              <strong>発生日時</strong>
+              9月1日 午前11時58分
+            </div>
+            <div class="info-block">
+              <strong>死者数</strong>
+              <a href="https://www.mlit.go.jp/hakusyo/mlit/r02/hakusho/r03/html/n1121000.html" target="_blank" rel="noopener noreferrer">105,385人 (国土交通省)</a>
+            </div>
+            <div class="info-block">
+              <strong>行方不明者数</strong>
+              <a href="https://www.archives.go.jp/ayumi/kobetsu/t12_1923_01.html" target="_blank" rel="noopener noreferrer">約43,000人 (国立公文書館)</a>
+            </div>
+            <div class="info-block">
+              <strong>多かった死因</strong>
+              <a href="https://www.histeq.jp/kaishi_21/P047-058.pdf" target="_blank" rel="noopener noreferrer">大規模な火災による焼死 (歴史地震研究会)</a>
+            </div>
+          </div>
+          <div class="info-block description-block">
+            <strong>概要</strong>
+            <p>100年以上前に起こったこの震災は、多くの死傷者や行方不明者を出した。<br>
+              特に東京が壊滅的な被害を受けたことで、「帝都復興計画」が始動し、現在の東京の道路網や公園（避難場所としての機能）を支える骨格が作られた。<br>
+              また、この震災を契機に、木造建築の建物は鉄筋コンクリート造へと急速に変化していった。さらに、9月1日はこの震災を受けて「防災の日」として制定され、国民が防災について考える機会となった。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary" id="summary">
+      データを読み込み中です。
+    </div>
+
+    <div class="event-list">
+      <h3 id="event-title">地震一覧</h3>
+      <div id="event-table"></div>
+    </div>
+
+    <div class="note">
+      ※ 「詳細不明」の地震は、座標や地域名から可能な範囲で都道府県に割り当てています。
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="../js/map1923.js"></script>
+</body>
+</html>

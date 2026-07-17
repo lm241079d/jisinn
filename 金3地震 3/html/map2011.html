@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>2011年 都道府県別 地震発生回数</title>
+
+  <link rel="stylesheet" href="../css/map2011.css">
+</head>
+
+<body>
+
+  <a href="../index.html" class="back-button">← ポータルに戻る</a>
+
+  <div class="container">
+    <h2>2011年（平成23年）東日本大震災 都道府県別 地震発生回数</h2>
+
+    <div class="description">
+      2011年の地震データを、通年・月別・日付別・震度別に表示します。地図にマウスを乗せると震度別回数も確認できます。
+    </div>
+
+    <div class="control-area">
+      <div class="control-group">
+        <label for="date-input">日付：</label>
+        <input type="date" id="date-input" min="2011-01-01" max="2011-12-31">
+        <button onclick="handleDateSearch()">日付で表示</button>
+      </div>
+
+      <div class="control-group">
+        <label for="month-select" class="year-label">月：</label>
+        <select id="month-select" onchange="handleCategoryChange()">
+          <option value="all">通年</option>
+          <option value="01">1月</option>
+          <option value="02">2月</option>
+          <option value="03">3月</option>
+          <option value="04">4月</option>
+          <option value="05">5月</option>
+          <option value="06">6月</option>
+          <option value="07">7月</option>
+          <option value="08">8月</option>
+          <option value="09">9月</option>
+          <option value="10">10月</option>
+          <option value="11">11月</option>
+          <option value="12">12月</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="shindo-select">震度：</label>
+        <select id="shindo-select" onchange="handleCategoryChange()">
+          <option value="all">すべて</option>
+          <option value="shindo1">震度1</option>
+          <option value="shindo2">震度2</option>
+          <option value="shindo3">震度3</option>
+          <option value="shindo4_above">震度4以上</option>
+        </select>
+      </div>
+
+      <button onclick="resetView()">通年表示に戻す</button>
+    </div>
+
+    <div id="regions_div"></div>
+    <!-- 追加：大規模地震災害の比較 -->
+    <div class="disaster-comparison">
+      <h3>災害の概要</h3>
+      <div class="disaster-grid">
+        <div class="disaster-card">
+          <h4>2011年 東日本大震災</h4>
+          <div class="info-blocks">
+            <div class="info-block">
+              <strong>発生日時</strong>
+              3月11日 14時46分
+            </div>
+            <div class="info-block">
+              <strong>死者数 / 行方不明者数</strong>
+              <a href="https://www.mlit.go.jp/hakusyo/mlit/r02/hakusho/r03/html/n1123000.html" target="_blank" rel="noopener noreferrer">死者: 19,747人 / 不明: 2,556人 (国土交通省)</a>
+            </div>
+            <div class="info-block">
+              <strong>多かった死因</strong>
+              <a href="http://www.geje-gcds.jp/pdf/01-071-0202_j.pdf" target="_blank" rel="noopener noreferrer">津波による溺死 (関連統計DB)</a>
+            </div>
+          </div>
+          <div class="info-block description-block">
+            <strong>概要</strong>
+            <p>東日本大震災では、地震そのものだけでなく、津波や原子力発電所事故によって、より多くの災害が引き起こされた。<br>
+              福島第一原子力発電所の事故により、被災者は混乱をさらに深め、家を失い故郷を離れざるを得ない人も多くいた。<br>
+              また、岩手県宮古市にあった世界最大級の防潮堤（高さ10m）をも越える津波が街を飲み込んだことで、「堤防やダムで災害を防ぐ」という考え方に大きな見直しが求められた。<br>
+              以後、災害への対応は「防ぐ」から「被害を最小限に抑える」ことを重視する「減災」の考え方へと大きく転換した。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary" id="summary">
+      データを読み込み中です。
+    </div>
+
+    <div class="event-list">
+      <h3 id="event-title">地震一覧</h3>
+      <div id="event-table"></div>
+    </div>
+
+    <div class="note">
+      ※ 海域名や「詳細不明」の地震は、地域名・座標から可能な範囲で都道府県に割り当てています。
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="../js/map2011.js"></script>
+</body>
+</html>
